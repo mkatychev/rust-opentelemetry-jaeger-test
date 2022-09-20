@@ -20,9 +20,9 @@ struct Root {
     #[argh(option)]
     jaeger_agent_endpoint: String,
 
-    /// make request with isahc
-    #[argh(switch)]
-    use_isahc: bool,
+    /// request backend (reqwest, isahc or surf)
+    #[argh(option, default = "\"reqwest\".to_owned()")]
+    backend: String,
 }
 
 #[tokio::main(flavor = "multi_thread")]
@@ -50,14 +50,18 @@ async fn main() {
 
     tracing::info!(?root, "Parsed arguments");
 
-    let result = if root.use_isahc {
-        make_request_with_isahc(&root.s3_url)
-            .in_current_span()
-            .await
-    } else {
-        make_request_with_reqwest(&root.s3_url)
-            .in_current_span()
-            .await
+    let result = match root.backend.trim().to_lowercase().as_str() {
+        "isahc" => {
+            make_request_with_isahc(&root.s3_url)
+                .in_current_span()
+                .await
+        }
+        "reqwest" => {
+            make_request_with_reqwest(&root.s3_url)
+                .in_current_span()
+                .await
+        }
+        _ => panic!("Unknown backend"),
     };
 
     tracing::info!(?result, "Finished making request");
