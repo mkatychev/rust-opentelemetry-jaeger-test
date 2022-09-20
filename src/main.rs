@@ -61,6 +61,7 @@ async fn main() {
                 .in_current_span()
                 .await
         }
+        "surf" => make_request_with_surf(&root.s3_url).in_current_span().await,
         _ => panic!("Unknown backend"),
     };
 
@@ -85,4 +86,11 @@ async fn make_request_with_isahc(url: &str) -> String {
     let mut response = isahc::get_async(url).await.expect("get URL");
 
     response.text().await.expect("get text")
+}
+
+#[tracing::instrument]
+async fn make_request_with_surf(url: &str) -> String {
+    let mut response = surf::get(url).await.expect("get URL");
+
+    response.body_string().await.expect("get text")
 }
