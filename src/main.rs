@@ -31,6 +31,13 @@ struct Root {
     /// produce JSON output including span informaton
     #[argh(switch)]
     json: bool,
+
+    /// logging configuration for tracing_subscriber::EnvFilter
+    #[argh(
+        option,
+        default = "env::var(\"RUST_LOG\").unwrap_or_else(|_| \"debug,rust_opentelemetry_jaeger_test=trace\".to_string())"
+    )]
+    log: String,
 }
 
 #[tokio::main(flavor = "multi_thread")]
@@ -50,8 +57,7 @@ async fn main() {
         registry().with(fmt::layer().boxed())
     };
 
-    let subscriber = subscriber
-        .with(EnvFilter::new(env::var("RUST_LOG").unwrap_or_else(|_| "error".to_string())).boxed());
+    let subscriber = subscriber.with(EnvFilter::new(&root.log).boxed());
 
     let tracer = opentelemetry_jaeger::new_agent_pipeline()
         .with_endpoint(&root.jaeger_agent_endpoint)
