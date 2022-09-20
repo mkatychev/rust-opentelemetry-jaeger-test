@@ -13,12 +13,9 @@ use tracing_subscriber::{
 #[derive(FromArgs, PartialEq, Debug)]
 /// Fetch a URL and export spans.
 struct Root {
-    /// S3-compatible object storage URL
-    #[argh(
-        option,
-        default = "\"https://sfo3.digitaloceanspaces.com/\".to_owned()"
-    )]
-    s3_url: String,
+    /// URL to fetch
+    #[argh(option, default = "\"http://www.google.com/\".to_owned()")]
+    url: String,
 
     /// jaeger agent endpoint
     #[argh(option)]
@@ -83,17 +80,9 @@ async fn main() {
 #[tracing::instrument]
 async fn run(root: &Root) {
     let result = match root.backend.trim().to_lowercase().as_str() {
-        "isahc" => {
-            make_request_with_isahc(&root.s3_url)
-                .in_current_span()
-                .await
-        }
-        "reqwest" => {
-            make_request_with_reqwest(&root.s3_url)
-                .in_current_span()
-                .await
-        }
-        "surf" => make_request_with_surf(&root.s3_url).in_current_span().await,
+        "isahc" => make_request_with_isahc(&root.url).in_current_span().await,
+        "reqwest" => make_request_with_reqwest(&root.url).in_current_span().await,
+        "surf" => make_request_with_surf(&root.url).in_current_span().await,
         _ => panic!("Unknown backend"),
     };
 
