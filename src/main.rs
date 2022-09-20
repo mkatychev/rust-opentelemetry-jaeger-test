@@ -71,11 +71,17 @@ async fn main() {
         .with(tracing_opentelemetry::layer().with_tracer(tracer).boxed())
         .init();
 
-    let span = tracing::info_span!("main");
-    let _guard = span.enter();
-
     tracing::info!(?root, "Parsed arguments");
+    let span = tracing::info_span!("main");
+    run(&root).instrument(span).await;
 
+    opentelemetry::global::shutdown_tracer_provider();
+
+    tracing::info!("Shut down tracer provider");
+}
+
+#[tracing::instrument]
+async fn run(root: &Root) {
     let result = match root.backend.trim().to_lowercase().as_str() {
         "isahc" => {
             make_request_with_isahc(&root.s3_url)
@@ -92,10 +98,6 @@ async fn main() {
     };
 
     tracing::info!(?result, "Finished making request");
-
-    opentelemetry::global::shutdown_tracer_provider();
-
-    tracing::info!("Shut down tracer provider");
 }
 
 #[tracing::instrument]
