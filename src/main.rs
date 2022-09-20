@@ -64,7 +64,6 @@ async fn main() {
         .expect("could not install Jaeger pipeline");
 
     subscriber
-        .with(EnvFilter::new(env::var("RUST_LOG").unwrap_or_else(|_| "error".to_string())).boxed())
         .with(tracing_opentelemetry::layer().with_tracer(tracer).boxed())
         .init();
 
