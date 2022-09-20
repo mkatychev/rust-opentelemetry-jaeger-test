@@ -1,0 +1,19 @@
+# rust-opentelemetry-jaeger-test
+
+A small reproduction of an issue with submitted spans to Jaeger. Note that the issue does not appear 100% of the time, but it does appear most of the time. There is [a possibly-related Hyper issue](https://github.com/hyperium/hyper/pull/2261), though that presumably wouldn’t account for surf or isahc’s behaviour.
+
+## Testing procedure
+
+1. Clone https://github.com/shivjm/rust-opentelemetry-jaeger-test.git.
+2. Start Jaeger via Docker: <kbd>docker run -it --rm -p 6831:6831/udp -p 6832:6832/udp -p 16686:16686 jaegertracing/all-in-one:1.38</kbd>.
+3. Run the application: <kbd>cargo run -- --log 'debug,rust_opentelemetry_jaeger_test=trace' --json --backend surf --jaeger-agent-endpoint 127.0.0.1:6831</kbd>.
+4. Go to [localhost:16686](http://localhost:16686), select the `opentelemetry_jaeger_test` service, and click on Find Traces.
+5. Try the same thing with <kbd>--backend reqwest</kbd> and <kbd>--backend isahc</kbd>.
+
+## Expected results
+
+Properly nested spans from all the components involved.
+
+## Actual results
+
+Dropped spans, scattered traces, and flattened hierarchies.
