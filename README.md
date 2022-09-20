@@ -18,4 +18,8 @@ Properly nested spans from all the components involved.
 
 ## Actual results
 
-Dropped spans, scattered traces, and flattened hierarchies.
+Dropped spans, scattered traces, and flattened hierarchies. For example, running with the isahc backend creates a trace with only two spans:
+
+![Search results: a trace containing two spans instead of a full tree.](./trace-search.png)
+
+![Trace view: a trace containing two spans, of which the parent itself has an invalid parent span ID](./trace-view.png)
