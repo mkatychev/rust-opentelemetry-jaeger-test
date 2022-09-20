@@ -1,6 +1,6 @@
 # rust-opentelemetry-jaeger-test
 
-A small reproduction of an issue with submitted spans to Jaeger. Note that the issue does not appear 100% of the time, but it does appear most of the time. There is [a possibly-related Hyper issue](https://github.com/hyperium/hyper/pull/2261), though that presumably wouldn’t account for surf or isahc’s behaviour.
+A small reproduction of an issue with spans submitted to Jaeger. The issue doesn’t appear 100% of the time, but it does appear most of the time. There is [a possibly-related Hyper issue](https://github.com/hyperium/hyper/pull/2261), though that presumably wouldn’t account for surf or isahc’s behaviour.
 
 ## Testing procedure
 
