@@ -68,8 +68,11 @@ async fn main() {
         .init();
 
     tracing::info!(?root, "Parsed arguments");
-    let span = tracing::info_span!("main");
-    run(&root).instrument(span).await;
+
+    {
+        let span = tracing::info_span!("main");
+        run(&root).instrument(span).await;
+    }
 
     opentelemetry::global::shutdown_tracer_provider();
 
