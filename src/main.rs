@@ -3,7 +3,11 @@ use std::env;
 use argh::FromArgs;
 use tracing::Instrument;
 use tracing_subscriber::{
-    fmt, layer::SubscriberExt, registry, util::SubscriberInitExt, EnvFilter, Layer,
+    fmt::{self, format::FmtSpan},
+    layer::SubscriberExt,
+    registry,
+    util::SubscriberInitExt,
+    EnvFilter, Layer,
 };
 
 #[derive(FromArgs, PartialEq, Debug)]
@@ -23,13 +27,29 @@ struct Root {
     /// request backend (reqwest, isahc or surf)
     #[argh(option, default = "\"reqwest\".to_owned()")]
     backend: String,
+
+    /// produce JSON output including span informaton
+    #[argh(switch)]
+    json: bool,
 }
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
     let root: Root = argh::from_env();
 
-    let subscriber = registry().with(fmt::layer().boxed());
+    let subscriber = if root.json {
+        // TODO add trace ID here when possible: https://github.com/tokio-rs/tracing/discussions/1703, https://github.com/tokio-rs/tracing/issues/1481, https://github.com/tokio-rs/tracing/issues/1531
+        registry().with(
+            fmt::layer()
+                .json()
+                .with_span_events(FmtSpan::NEW | FmtSpan::CLOSE)
+                .with_span_list(false)
+                .boxed(),
+        )
+    } else {
+        registry().with(fmt::layer().boxed())
+    };
+
     let subscriber = subscriber
         .with(EnvFilter::new(env::var("RUST_LOG").unwrap_or_else(|_| "error".to_string())).boxed());
 
