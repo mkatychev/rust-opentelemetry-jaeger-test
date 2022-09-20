@@ -37,7 +37,7 @@ struct Root {
     log: String,
 }
 
-#[tokio::main(flavor = "multi_thread")]
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     let root: Root = argh::from_env();
 
@@ -60,7 +60,7 @@ async fn main() {
         .with_endpoint(&root.jaeger_agent_endpoint)
         .with_auto_split_batch(true)
         .with_service_name("opentelemetry-jaeger-test")
-        .install_batch(opentelemetry::runtime::Tokio)
+        .install_batch(opentelemetry::runtime::TokioCurrentThread)
         .expect("could not install Jaeger pipeline");
 
     subscriber
