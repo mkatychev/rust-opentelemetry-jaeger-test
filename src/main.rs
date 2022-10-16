@@ -1,7 +1,12 @@
 use std::env;
 
 use argh::FromArgs;
-use tracing::Instrument;
+use opentelemetry::{
+    trace::{FutureExt, TraceContextExt},
+    Context,
+};
+use tracing::{Instrument, Span};
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::{
     fmt::{self, format::FmtSpan},
     layer::SubscriberExt,
@@ -51,7 +56,7 @@ async fn main() {
                 .boxed(),
         )
     } else {
-        registry().with(fmt::layer().boxed())
+        registry().with(fmt::layer().without_time().with_target(false).boxed())
     };
 
     let subscriber = subscriber.with(EnvFilter::new(&root.log).boxed());
@@ -71,7 +76,12 @@ async fn main() {
 
     {
         let span = tracing::info_span!("main");
-        run(&root).instrument(span).await;
+        tracing::warn!(span_span_id = ?span.context().span().span_context().span_id(), "pre_run");
+        tracing::warn!(cx_span_id = ?Context::current().span().span_context().span_id(), "pre_run");
+        run(&root)
+            .with_context(span.context())
+            .instrument(span)
+            .await;
     }
 
     opentelemetry::global::shutdown_tracer_provider();
@@ -79,16 +89,32 @@ async fn main() {
     tracing::info!("Shut down tracer provider");
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip_all)]
 async fn run(root: &Root) {
-    let result = match root.backend.trim().to_lowercase().as_str() {
-        "isahc" => make_request_with_isahc(&root.url).in_current_span().await,
-        "reqwest" => make_request_with_reqwest(&root.url).in_current_span().await,
-        "surf" => make_request_with_surf(&root.url).in_current_span().await,
+    tracing::warn!(span_span_id = ?Span::current().context().span().span_context().span_id());
+    tracing::warn!(cx_span_id = ?Context::current().span().span_context().span_id());
+    let _result = match root.backend.trim().to_lowercase().as_str() {
+        "isahc" => {
+            make_request_with_isahc(&root.url)
+                .with_current_context()
+                .in_current_span()
+                .await
+        }
+        "reqwest" => {
+            make_request_with_reqwest(&root.url)
+                .with_current_context()
+                .in_current_span()
+                .await
+        }
+        "surf" => {
+            make_request_with_surf(&root.url)
+                .with_context(Span::current().context())
+                .await
+        }
         _ => panic!("Unknown backend"),
     };
 
-    tracing::info!(?result, "Finished making request");
+    tracing::info!("Finished making request");
 }
 
 #[tracing::instrument]
@@ -107,8 +133,10 @@ async fn make_request_with_isahc(url: &str) -> String {
     response.text().await.expect("get text")
 }
 
-#[tracing::instrument]
+#[tracing::instrument(skip_all)]
 async fn make_request_with_surf(url: &str) -> String {
+    tracing::warn!(span_span_id = ?Span::current().context().span().span_context().span_id(), "make_request");
+    tracing::warn!(cx_span_id = ?Context::current().span().span_context().span_id(), "make_request");
     let mut response = surf::get(url).await.expect("get URL");
 
     response.body_string().await.expect("get text")
